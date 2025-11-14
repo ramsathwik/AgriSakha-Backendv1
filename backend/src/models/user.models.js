@@ -5,11 +5,14 @@ import crypto from "crypto";
 
 const userSchema = new mongoose.Schema(
   {
+    imageUrl: String,
     username: { type: String, required: true },
-    email: { type: String, required: true },
     phoneNumber: { type: String, required: true },
     password: { type: String, required: true },
-    farmsize: Number,
+    farmsize: {
+      type: Number,
+      default: 0,
+    },
     crops: [{ type: mongoose.Types.ObjectId, ref: "Crop" }],
     state: {
       type: mongoose.Types.ObjectId,
@@ -32,11 +35,17 @@ const userSchema = new mongoose.Schema(
     tips: [{ type: mongoose.Types.ObjectId, ref: "Tip" }],
     forgotPasswordToken: String,
     forgotPasswordExpiry: Date,
+    phoneNumberVerificationToken: String,
+    phoneNumberVerificationExpiry: Date,
     refreshToken: String,
     role: {
       type: String,
       enum: ["farmer", "expert", "admin"],
       default: "farmer",
+    },
+    isVerified: {
+      type: Boolean,
+      default: false,
     },
   },
   { timestamps: true }
