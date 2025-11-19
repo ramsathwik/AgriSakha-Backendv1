@@ -4,6 +4,7 @@ import { ApiResponse } from "../utils/api-response.js";
 import { ApiError } from "../utils/api-error.js";
 import { uploadOnCloudinary } from "../utils/cloudinary.js";
 import jwt from "jsonwebtoken";
+import { Mandal } from "../models/mandal.models.js";
 
 import crypto from "crypto";
 
@@ -21,6 +22,9 @@ async function generateAccessAndRefreshToken(Id) {
 
 export const sendOtp = asyncHandler(async (req, res) => {
   const { phoneNumber } = req.body;
+  if (!phoneNumber) {
+    throw new ApiError(400, "phoneNumber is required");
+  }
   const user = await User.findOne({ phoneNumber });
   if (!user) {
     throw new ApiError(400, "User Not registered");
@@ -44,6 +48,9 @@ export const sendOtp = asyncHandler(async (req, res) => {
 
 export const verifyOtp = asyncHandler(async (req, res) => {
   const { phoneNumber, otp } = req.body;
+  if (!phoneNumber || !otp) {
+    throw new ApiError(400, "Phone Number or otp is missing");
+  }
   const user = await User.findOne({ phoneNumber });
   if (!user) {
     throw new ApiError(400, "User Not Found");
@@ -97,7 +104,9 @@ export const verifyOtp = asyncHandler(async (req, res) => {
 });
 
 export const refreshAccessToken = asyncHandler(async (req, res) => {
-  const incomingToken = req.cookies?.refreshToken || req.body.incomingToken;
+  const incomingToken =
+    req.cookies?.refreshToken ||
+    req.header("Authorization")?.replace("Bearer ", "");
   if (!incomingToken) {
     throw new ApiError(400, "No Refresh Token");
   }
@@ -127,6 +136,7 @@ export const refreshAccessToken = asyncHandler(async (req, res) => {
     res.status(200).json(
       new ApiResponse(200, "accessToken Refreshed Successfully", {
         accessToken,
+        newRefreshToken,
       })
     );
   } catch (err) {
@@ -149,11 +159,27 @@ export const registerUser = asyncHandler(async (req, res) => {
   } = req.body || {};
 
   // Basic validation
-  if (!username || !phoneNumber || !password || !state || !district) {
-    throw new ApiError(400, "Missing required fields");
+  const isExists = await User.findOne({ phoneNumber });
+  console.log(isExists);
+
+  if (isExists) {
+    if (isExists.isVerified) {
+      throw new ApiError(400, "User Already Exists");
+    } else {
+      return res
+        .status(200)
+        .json(
+          new ApiResponse(
+            200,
+            "User created successfully. Please verify your mobile number."
+          )
+        );
+    }
   }
+
   // Upload avatar if available
   const avatarLocalPath = req.file?.path;
+  console.log(avatarLocalPath);
   let avatar = null;
   if (avatarLocalPath) {
     try {
@@ -217,6 +243,7 @@ export const loginUser = asyncHandler(async (req, res) => {
   const newuser = await User.findById(user._id).select(
     "-password -refreshToken -isVerified -phoneNumberVerificationToken -phoneNumberVerificationExpiry"
   );
+
   if (!newuser) {
     throw new ApiError(400, "User Not Found");
   }
@@ -233,6 +260,7 @@ export const loginUser = asyncHandler(async (req, res) => {
 
   res.status(200).json(
     new ApiResponse(200, "Logged In Successfully", {
+      user: newuser,
       accessToken,
       refreshToken,
     })
