@@ -7,6 +7,7 @@ import {
   refreshAccessToken,
   logoutUser,
   sendOtp,
+  getCurrentUser,
 } from "../controllers/auth.controller.js";
 
 import { upload } from "../middlewares/multer.middleware.js";
@@ -24,6 +25,8 @@ router.post(
   validate,
   registerUser
 );
+
+router.get("/me", getCurrentUser);
 router.post("/verify-otp", verifyOtp);
 router.post("/send-otp", sendOtp);
 router.post("/login-user", loginValidator(), validate, loginUser);

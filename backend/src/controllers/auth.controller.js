@@ -97,6 +97,7 @@ export const verifyOtp = asyncHandler(async (req, res) => {
   });
   res.status(200).json(
     new ApiResponse(200, "Registered In Successfully", {
+      user: newuser,
       accessToken,
       refreshToken,
     })
@@ -223,7 +224,7 @@ export const registerUser = asyncHandler(async (req, res) => {
 export const loginUser = asyncHandler(async (req, res) => {
   const { phoneNumber, password } = req.body;
   const user = await User.findOne({ phoneNumber: phoneNumber });
-
+  console.log(phoneNumber, password);
   if (!user) {
     throw new ApiError(400, "User Not Found");
   }
@@ -268,6 +269,7 @@ export const loginUser = asyncHandler(async (req, res) => {
 });
 
 export const logoutUser = asyncHandler(async (req, res) => {
+  console.log(req.user);
   const userId = req.user._id;
   const user = await User.findById(userId);
   if (!user) {
@@ -284,4 +286,45 @@ export const logoutUser = asyncHandler(async (req, res) => {
       refreshToken: "",
     })
   );
+});
+
+export const getCurrentUser = asyncHandler(async (req, res) => {
+  try {
+    // 1. Read access token from cookies
+    const accessToken = req.cookies?.accessToken;
+    console.log(accessToken);
+
+    if (!accessToken) {
+      throw new ApiError(401, "Not logged in");
+    }
+
+    // 2. Verify the access token
+    let decoded;
+    try {
+      decoded = jwt.verify(accessToken, process.env.ACCESS_TOKEN_SECRET);
+    } catch (err) {
+      throw new ApiError(401, "Access token expired");
+    }
+
+    // 3. Find user
+    const user = await User.findById(decoded._id).select(
+      "-password -refreshToken -phoneNumberVerificationToken -phoneNumberVerificationExpiry"
+    );
+
+    if (!user) {
+      throw new ApiError(404, "User not found");
+    }
+
+    // 4. Return user info
+    res.status(200).json(
+      new ApiResponse(200, "User authenticated", {
+        user,
+      })
+    );
+  } catch (error) {
+    // If access token expired, try refresh
+    return res
+      .status(401)
+      .json(new ApiResponse(401, "Invalid or expired token"));
+  }
 });
