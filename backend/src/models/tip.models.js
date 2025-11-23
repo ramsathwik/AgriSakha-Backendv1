@@ -14,13 +14,13 @@ const tipSchema = mongoose.Schema(
       type: String,
       required: true,
     },
+    likeCount: {
+      type: Number,
+      default: 0,
+    },
     userId: {
       type: mongoose.Types.ObjectId,
       ref: "User",
-    },
-    likes: {
-      type: Number,
-      default: 0,
     },
     category: {
       type: mongoose.Types.ObjectId,
