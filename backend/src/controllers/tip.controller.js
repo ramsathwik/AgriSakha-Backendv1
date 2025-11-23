@@ -7,6 +7,7 @@
 // POST /tip/:id/like → Everyone explain all these routes what they doi dont give me code
 import { Tip } from "../models/tip.models.js";
 import { Like } from "../models/like.models.js";
+import { User } from "../models/user.models.js";
 import { ApiError } from "../utils/api-error.js";
 import { asyncHandler } from "../utils/async-handler.js";
 import { ApiResponse } from "../utils/api-response.js";
@@ -106,8 +107,13 @@ export const getTip = asyncHandler(async (req, res) => {
 export const updateTip = asyncHandler(async (req, res) => {
   const { title, description, category } = req.body;
   const tipId = req.params.tipId;
-
+  const userId = req.user._id;
+  let user = await User.findById(userId);
   let tip = await Tip.findById(tipId);
+  if (user.role == "expert" && user._id != tip.userId) {
+    throw new ApiError(400, "Access Denied");
+  }
+
   if (!tip) throw new ApiError(404, "Tip not found");
 
   const newImagePath = req.file?.path;
@@ -139,9 +145,14 @@ export const updateTip = asyncHandler(async (req, res) => {
 
 export const deleteTip = asyncHandler(async (req, res) => {
   const tipId = req.params.tipId;
+  let userId = req.user?._id;
 
   const tip = await Tip.findById(tipId);
   if (!tip) throw new ApiError(404, "Tip not found");
+  let user = await User.findById(userId);
+  if (user.role == "expert" && user._id != tip.userId) {
+    throw new ApiError(400, "Access Denied");
+  }
 
   const publicId = getPublicId(tip.imageUrl);
   if (publicId) await deleteFromCloudinary(publicId);
