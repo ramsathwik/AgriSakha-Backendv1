@@ -105,16 +105,15 @@ export const getTip = asyncHandler(async (req, res) => {
 });
 
 export const updateTip = asyncHandler(async (req, res) => {
-  const { title, description, category } = req.body;
+  const { title, description, category } = req.body || {};
   const tipId = req.params.tipId;
   const userId = req.user._id;
   let user = await User.findById(userId);
   let tip = await Tip.findById(tipId);
+  if (!tip) throw new ApiError(404, "Tip not found");
   if (user.role == "expert" && user._id != tip.userId) {
     throw new ApiError(400, "Access Denied");
   }
-
-  if (!tip) throw new ApiError(404, "Tip not found");
 
   const newImagePath = req.file?.path;
   let updateFields = {};
@@ -123,7 +122,9 @@ export const updateTip = asyncHandler(async (req, res) => {
     const uploaded = await uploadOnCloudinary(newImagePath);
 
     const prevPublicId = getPublicId(tip.imageUrl);
-    if (prevPublicId) deleteFromCloudinary(prevPublicId);
+    if (prevPublicId) {
+      await deleteFromCloudinary(prevPublicId);
+    }
 
     updateFields["imageUrl"] = uploaded.url;
   }
@@ -132,11 +133,9 @@ export const updateTip = asyncHandler(async (req, res) => {
   if (description) updateFields["description"] = description;
   if (category) updateFields["category"] = category;
 
-  const updatedTip = await Tip.findByIdAndUpdate(
-    tipId,
-    { $set: updateFields },
-    { new: true }
-  );
+  const updatedTip = await Tip.findByIdAndUpdate(tipId, updateFields, {
+    new: true,
+  });
 
   res
     .status(200)

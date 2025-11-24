@@ -19,13 +19,13 @@ router.post(
 router.get("/get-categories", verifyJwt, getCategories);
 
 router.patch(
-  "/update-category",
+  "/update-category/:categoryId",
   verifyJwt,
   authorizeRoles("admin"),
   updateCategory
 );
 router.delete(
-  "/delete-category",
+  "/delete-category/:categoryId",
   verifyJwt,
   authorizeRoles("admin"),
   deleteCategory

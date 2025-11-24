@@ -21,13 +21,14 @@ router.post(
 router.get("/get-tips", verifyJwt, getTips);
 router.get("/get-tip/:tipId", verifyJwt, getTip);
 router.patch(
-  "update-tip/:tipId",
+  "/update-tip/:tipId",
   verifyJwt,
   authorizeRoles("admin", "expert"),
+  upload.single("tipImage"),
   updateTip
 );
 router.delete(
-  "delete-tip/:tipId",
+  "/delete-tip/:tipId",
   verifyJwt,
   authorizeRoles("admin", "expert"),
   deleteTip
