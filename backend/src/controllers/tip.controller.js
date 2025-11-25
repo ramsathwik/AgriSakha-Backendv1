@@ -46,25 +46,23 @@ export const AddTip = asyncHandler(async (req, res) => {
 });
 
 export const getTips = asyncHandler(async (req, res) => {
-  //   const tips = await Tip.aggregate([
-  //     {
-  //       $lookup: {
-  //         from: "likes",
-  //         localField: "_id",
-  //         foreignField: "tipId",
-  //         as: "likes"
-  //       }
-  //     },
-  //     {
-  //       $addFields: {
-  //         likeCount: { $size: "$likes" }
-  //       }
-  //     }
-  //   ]);
-  const tips = await Tip.find({});
+  const userId = req.user?._id;
+
+  // get all tips
+  const tips = await Tip.find({}).lean();
+
+  // get all likes by this user for these tips
+  let likedTips = await Like.find({ userId }).distinct("tipId");
+  likedTips = likedTips.map((like) => like.toString());
+
+  const updatedTips = tips.map((tip) => ({
+    ...tip,
+    isLiked: likedTips.includes(tip._id.toString()),
+  }));
+
   return res
     .status(200)
-    .json(new ApiResponse(200, "Tips Fetched Successfully", tips));
+    .json(new ApiResponse(200, "Tips Fetched Successfully", updatedTips));
 });
 
 export const getTip = asyncHandler(async (req, res) => {
@@ -74,11 +72,11 @@ export const getTip = asyncHandler(async (req, res) => {
     throw new ApiError(400, "Tip Id is required");
   }
 
+  const userId = req.user?._id;
+
   const tip = await Tip.aggregate([
     {
-      $match: {
-        _id: new mongoose.Types.ObjectId(tipId),
-      },
+      $match: { _id: new mongoose.Types.ObjectId(tipId) },
     },
     {
       $lookup: {
@@ -90,18 +88,27 @@ export const getTip = asyncHandler(async (req, res) => {
     },
     {
       $addFields: {
-        likeCount: { $size: "$likes" },
+        likeCountFromLookup: { $size: "$likes" },
       },
     },
   ]);
 
   if (tip.length === 0) {
-    throw new ApiError(400, "Invalid Tip Id Provided");
+    throw new ApiError(404, "Tip not found");
   }
+
+  const tipData = tip[0];
+
+  const userLiked = await Like.exists({ userId, tipId });
+
+  const updatedTip = {
+    ...tipData,
+    isLiked: Boolean(userLiked),
+  };
 
   return res
     .status(200)
-    .json(new ApiResponse(200, "Tip fetched Successfully", tip[0]));
+    .json(new ApiResponse(200, "Tip fetched successfully", updatedTip));
 });
 
 export const updateTip = asyncHandler(async (req, res) => {
