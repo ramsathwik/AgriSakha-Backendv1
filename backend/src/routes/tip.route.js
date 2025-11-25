@@ -9,6 +9,7 @@ import {
   getTip,
   updateTip,
   deleteTip,
+  getTipsByCategory,
 } from "../controllers/tip.controller.js";
 
 router.post(
@@ -20,6 +21,7 @@ router.post(
 );
 router.get("/get-tips", verifyJwt, getTips);
 router.get("/get-tip/:tipId", verifyJwt, getTip);
+router.get("/category/:categoryId", verifyJwt, getTipsByCategory);
 router.patch(
   "/update-tip/:tipId",
   verifyJwt,
@@ -33,4 +35,5 @@ router.delete(
   authorizeRoles("admin", "expert"),
   deleteTip
 );
+
 export default router;

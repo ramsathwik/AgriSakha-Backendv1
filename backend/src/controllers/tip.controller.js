@@ -8,6 +8,7 @@
 import { Tip } from "../models/tip.models.js";
 import { Like } from "../models/like.models.js";
 import { User } from "../models/user.models.js";
+import { TipCategory } from "../models/tipcategory.models.js";
 import { ApiError } from "../utils/api-error.js";
 import { asyncHandler } from "../utils/async-handler.js";
 import { ApiResponse } from "../utils/api-response.js";
@@ -109,6 +110,23 @@ export const getTip = asyncHandler(async (req, res) => {
   return res
     .status(200)
     .json(new ApiResponse(200, "Tip fetched successfully", updatedTip));
+});
+
+export const getTipsByCategory = asyncHandler(async (req, res) => {
+  const categoryId = req.params.categoryId;
+  const isCategoryExists = await TipCategory.findById(categoryId);
+  if (!isCategoryExists) {
+    throw new ApiError(400, "Category Not Found");
+  }
+  if (!categoryId) {
+    throw new ApiError(400, "Category is required");
+  }
+  const tips = await Tip.find({ category: categoryId })
+    .populate("category")
+    .sort({ createdAt: -1 });
+  return res
+    .status(200)
+    .json(new ApiResponse(200, "Tips for the Category Fetched", tips));
 });
 
 export const updateTip = asyncHandler(async (req, res) => {
