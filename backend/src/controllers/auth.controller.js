@@ -4,7 +4,6 @@ import { ApiResponse } from "../utils/api-response.js";
 import { ApiError } from "../utils/api-error.js";
 import { uploadOnCloudinary } from "../utils/cloudinary.js";
 import jwt from "jsonwebtoken";
-import { Mandal } from "../models/mandal.models.js";
 
 import crypto from "crypto";
 

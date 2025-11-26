@@ -14,6 +14,8 @@ const tipSchema = mongoose.Schema(
       type: String,
       required: true,
     },
+    tips: [{ type: String, required: true }],
+
     likeCount: {
       type: Number,
       default: 0,

@@ -1,10 +1,3 @@
-// Tip API Write controllers + routes for:
-// POST /tip → Expert (and optionally farmer)
-// GET /tips → Everyone
-// GET /tip/:id → Everyone
-// PUT /tip/:id → Only creator or admin
-// DELETE /tip/:id → Only creator or admin
-// POST /tip/:id/like → Everyone explain all these routes what they doi dont give me code
 import { Tip } from "../models/tip.models.js";
 import { Like } from "../models/like.models.js";
 import { User } from "../models/user.models.js";
@@ -19,40 +12,43 @@ import {
 } from "../utils/cloudinary.js";
 import { getPublicId } from "../utils/getPublicId.js";
 
+// -------------------- Add Tip --------------------
 export const AddTip = asyncHandler(async (req, res) => {
-  const { title, description, category } = req.body;
+  const { title, description, category, tips } = req.body; // tips array included
   const tipImagePath = req.file?.path;
   const userId = req.user?._id;
+
   let uploadedImage;
   if (tipImagePath) {
     try {
       uploadedImage = await uploadOnCloudinary(tipImagePath);
-      console.log("image uploaded ", uploadedImage);
     } catch (err) {
-      console.log("error ", err);
       throw new ApiError(400, "Error while uploading tip Image to Cloudinary");
     }
   }
-  let tipData = { title, description, category, userId };
-  if (uploadedImage) {
-    tipData["imageUrl"] = uploadedImage?.url;
-  }
-  let newTip = await Tip.create(tipData);
-  if (!newTip) {
-    throw new ApiError(400, "Something went wrong while creating the tip");
-  }
+
+  const tipData = {
+    title,
+    description,
+    category,
+    tips: Array.isArray(tips) ? tips : [tips], // ensure array
+    userId,
+    ...(uploadedImage && { imageUrl: uploadedImage.url }),
+  };
+
+  const newTip = await Tip.create(tipData);
+  if (!newTip) throw new ApiError(400, "Failed to create tip");
+
   return res
     .status(201)
     .json(new ApiResponse(201, "Tip Created Successfully", newTip));
 });
 
+// -------------------- Get All Tips --------------------
 export const getTips = asyncHandler(async (req, res) => {
   const userId = req.user?._id;
 
-  // get all tips
-  const tips = await Tip.find({}).lean();
-
-  // get all likes by this user for these tips
+  const tips = await Tip.find({}).populate("category").lean();
   let likedTips = await Like.find({ userId }).distinct("tipId");
   likedTips = likedTips.map((like) => like.toString());
 
@@ -66,116 +62,96 @@ export const getTips = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, "Tips Fetched Successfully", updatedTips));
 });
 
+// -------------------- Get Single Tip --------------------
 export const getTip = asyncHandler(async (req, res) => {
-  const tipId = req.params.tipId;
+  const { tipId } = req.params;
+  if (!tipId) throw new ApiError(400, "Tip Id is required");
 
-  if (!tipId) {
-    throw new ApiError(400, "Tip Id is required");
-  }
+  const tip = await Tip.findById(tipId).populate("category").lean();
+  if (!tip) throw new ApiError(404, "Tip not found");
 
-  const userId = req.user?._id;
-
-  const tip = await Tip.aggregate([
-    {
-      $match: { _id: new mongoose.Types.ObjectId(tipId) },
-    },
-    {
-      $lookup: {
-        from: "likes",
-        localField: "_id",
-        foreignField: "tipId",
-        as: "likes",
-      },
-    },
-    {
-      $addFields: {
-        likeCountFromLookup: { $size: "$likes" },
-      },
-    },
-  ]);
-
-  if (tip.length === 0) {
-    throw new ApiError(404, "Tip not found");
-  }
-
-  const tipData = tip[0];
-
-  const userLiked = await Like.exists({ userId, tipId });
-
-  const updatedTip = {
-    ...tipData,
-    isLiked: Boolean(userLiked),
-  };
+  const isLiked = await Like.exists({ userId: req.user?._id, tipId });
+  tip.isLiked = Boolean(isLiked);
 
   return res
     .status(200)
-    .json(new ApiResponse(200, "Tip fetched successfully", updatedTip));
+    .json(new ApiResponse(200, "Tip fetched successfully", tip));
 });
 
+// -------------------- Get Tips By Category --------------------
 export const getTipsByCategory = asyncHandler(async (req, res) => {
-  const categoryId = req.params.categoryId;
-  const isCategoryExists = await TipCategory.findById(categoryId);
-  if (!isCategoryExists) {
-    throw new ApiError(400, "Category Not Found");
-  }
-  if (!categoryId) {
-    throw new ApiError(400, "Category is required");
-  }
+  const { categoryId } = req.params;
+  if (!categoryId) throw new ApiError(400, "Category is required");
+  const userId = req.user._id;
+
+  const categoryExists = await TipCategory.findById(categoryId);
+  if (!categoryExists) throw new ApiError(400, "Category not found");
+  let likedTips = await Like.find({ userId }).distinct("tipId");
+  likedTips = likedTips.map((like) => like.toString());
+
   const tips = await Tip.find({ category: categoryId })
     .populate("category")
-    .sort({ createdAt: -1 });
+    .sort({ createdAt: -1 })
+    .lean();
+  const updatedTips = tips.map((tip) => ({
+    ...tip,
+    isLiked: likedTips.includes(tip._id.toString()),
+  }));
+
   return res
     .status(200)
-    .json(new ApiResponse(200, "Tips for the Category Fetched", tips));
+    .json(new ApiResponse(200, "Tips for the Category Fetched", updatedTips));
 });
 
+// -------------------- Update Tip --------------------
 export const updateTip = asyncHandler(async (req, res) => {
-  const { title, description, category } = req.body || {};
-  const tipId = req.params.tipId;
-  const userId = req.user._id;
-  let user = await User.findById(userId);
-  let tip = await Tip.findById(tipId);
+  const { title, description, category, tips } = req.body;
+  const { tipId } = req.params;
+  const userId = req.user?._id;
+
+  const tip = await Tip.findById(tipId);
   if (!tip) throw new ApiError(404, "Tip not found");
-  if (user.role == "expert" && user._id != tip.userId) {
-    throw new ApiError(400, "Access Denied");
+
+  const user = await User.findById(userId);
+  if (user.role === "expert" && !tip.userId.equals(user._id)) {
+    throw new ApiError(403, "Access Denied");
   }
 
   const newImagePath = req.file?.path;
-  let updateFields = {};
+  const updateFields = {};
 
   if (newImagePath) {
     const uploaded = await uploadOnCloudinary(newImagePath);
-
     const prevPublicId = getPublicId(tip.imageUrl);
-    if (prevPublicId) {
-      await deleteFromCloudinary(prevPublicId);
-    }
-
-    updateFields["imageUrl"] = uploaded.url;
+    if (prevPublicId) await deleteFromCloudinary(prevPublicId);
+    updateFields.imageUrl = uploaded.url;
   }
 
-  if (title) updateFields["title"] = title;
-  if (description) updateFields["description"] = description;
-  if (category) updateFields["category"] = category;
+  if (title) updateFields.title = title;
+  if (description) updateFields.description = description;
+  if (category) updateFields.category = category;
+  if (tips) updateFields.tips = Array.isArray(tips) ? tips : [tips];
 
   const updatedTip = await Tip.findByIdAndUpdate(tipId, updateFields, {
     new: true,
   });
 
-  res
+  return res
     .status(200)
     .json(new ApiResponse(200, "Tip updated successfully", updatedTip));
 });
 
+// -------------------- Delete Tip --------------------
 export const deleteTip = asyncHandler(async (req, res) => {
-  const tipId = req.params.tipId;
-  let userId = req.user?._id;
+  const { tipId } = req.params;
+  const userId = req.user?._id;
 
   const tip = await Tip.findById(tipId);
   if (!tip) throw new ApiError(404, "Tip not found");
-  let user = await User.findById(userId);
-  if (user.role == "expert" && user._id != tip.userId) {
-    throw new ApiError(400, "Access Denied");
+
+  const user = await User.findById(userId);
+  if (user.role === "expert" && !tip.userId.equals(user._id)) {
+    throw new ApiError(403, "Access Denied");
   }
 
   const publicId = getPublicId(tip.imageUrl);
@@ -184,5 +160,5 @@ export const deleteTip = asyncHandler(async (req, res) => {
   await Tip.findByIdAndDelete(tipId);
   await Like.deleteMany({ tipId });
 
-  res.status(200).json(new ApiResponse(200, "Tip deleted successfully"));
+  return res.status(200).json(new ApiResponse(200, "Tip deleted successfully"));
 });

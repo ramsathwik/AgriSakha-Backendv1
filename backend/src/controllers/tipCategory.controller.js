@@ -1,9 +1,3 @@
-// TipCategory API Write controllers + routes for:
-// POST /category → Admin/Expert only
-// GET /categories → Everyone (farmer, expert, admin)
-// PUT /category/:id → Admin only
-// DELETE /category/:id → Admin only
-
 import { TipCategory } from "../models/tipcategory.models.js";
 import { ApiError } from "../utils/api-error.js";
 import { asyncHandler } from "../utils/async-handler.js";
