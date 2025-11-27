@@ -164,3 +164,20 @@ export const deleteTip = asyncHandler(async (req, res) => {
 
   return res.status(200).json(new ApiResponse(200, "Tip deleted successfully"));
 });
+
+export const saveTip = asyncHandler(async (req, res) => {
+  const tipId = req.params.tipId;
+  if (!tipId) {
+    throw new ApiError(400, "Tip Id is required");
+  }
+  const userId = req.user?._id;
+  const user = await User.findById(userId);
+  if (!user) {
+    throw new ApiError(404, "User Not Found");
+  }
+  const userTips = user.tips;
+  const updatedtips = [...userTips, tipId];
+  user.tips = updatedtips;
+  await user.save();
+  return res.status(200).json(new ApiResponse(200, "Tip Saved Successfully"));
+});

@@ -10,6 +10,7 @@ import {
   updateTip,
   deleteTip,
   getTipsByCategory,
+  saveTip,
 } from "../controllers/tip.controller.js";
 
 router.post(
@@ -35,5 +36,7 @@ router.delete(
   authorizeRoles("admin", "expert"),
   deleteTip
 );
+
+router.post("/save-tip/:tipId", verifyJwt, saveTip);
 
 export default router;

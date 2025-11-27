@@ -306,9 +306,11 @@ export const getCurrentUser = asyncHandler(async (req, res) => {
     }
 
     // 3. Find user
-    const user = await User.findById(decoded._id).select(
-      "-password -refreshToken -phoneNumberVerificationToken -phoneNumberVerificationExpiry"
-    );
+    const user = await User.findById(decoded._id)
+      .select(
+        "-password -refreshToken -phoneNumberVerificationToken -phoneNumberVerificationExpiry"
+      )
+      .populate("tips");
 
     if (!user) {
       throw new ApiError(404, "User not found");
