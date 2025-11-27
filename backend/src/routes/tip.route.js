@@ -10,7 +10,7 @@ import {
   updateTip,
   deleteTip,
   getTipsByCategory,
-  saveTip,
+  ToggleSaveTip,
 } from "../controllers/tip.controller.js";
 
 router.post(
@@ -37,6 +37,6 @@ router.delete(
   deleteTip
 );
 
-router.post("/save-tip/:tipId", verifyJwt, saveTip);
+router.post("/save-tip/:tipId", verifyJwt, ToggleSaveTip);
 
 export default router;

@@ -48,6 +48,9 @@ export const AddTip = asyncHandler(async (req, res) => {
 // -------------------- Get All Tips --------------------
 export const getTips = asyncHandler(async (req, res) => {
   const userId = req.user?._id;
+  const user = await User.findById(userId);
+  let savedTips = user.tips;
+  savedTips = savedTips.map((saved) => saved.toString());
 
   const tips = await Tip.find({}).populate("category").lean();
   let likedTips = await Like.find({ userId }).distinct("tipId");
@@ -56,6 +59,7 @@ export const getTips = asyncHandler(async (req, res) => {
   const updatedTips = tips.map((tip) => ({
     ...tip,
     isLiked: likedTips.includes(tip._id.toString()),
+    isSaved: savedTips.includes(tip._id.toString()),
   }));
 
   return res
@@ -65,6 +69,10 @@ export const getTips = asyncHandler(async (req, res) => {
 
 // -------------------- Get Single Tip --------------------
 export const getTip = asyncHandler(async (req, res) => {
+  const userId = req.user?._id;
+  const user = await User.findById(userId);
+  let savedTips = user.tips;
+  savedTips = savedTips.map((saved) => saved.toString());
   const { tipId } = req.params;
   if (!tipId) throw new ApiError(400, "Tip Id is required");
 
@@ -72,7 +80,9 @@ export const getTip = asyncHandler(async (req, res) => {
   if (!tip) throw new ApiError(404, "Tip not found");
 
   const isLiked = await Like.exists({ userId: req.user?._id, tipId });
+  const isSaved = savedTips.includes(tip._id.toString());
   tip.isLiked = Boolean(isLiked);
+  tip.isSaved = Boolean(isSaved);
   await new Promise((resolve) => setTimeout(resolve, 1200));
 
   return res
@@ -84,7 +94,10 @@ export const getTip = asyncHandler(async (req, res) => {
 export const getTipsByCategory = asyncHandler(async (req, res) => {
   const { categoryId } = req.params;
   if (!categoryId) throw new ApiError(400, "Category is required");
-  const userId = req.user._id;
+  const userId = req.user?._id;
+  const user = await User.findById(userId);
+  let savedTips = user.tips;
+  savedTips = savedTips.map((saved) => saved.toString());
 
   const categoryExists = await TipCategory.findById(categoryId);
   if (!categoryExists) throw new ApiError(400, "Category not found");
@@ -98,6 +111,7 @@ export const getTipsByCategory = asyncHandler(async (req, res) => {
   const updatedTips = tips.map((tip) => ({
     ...tip,
     isLiked: likedTips.includes(tip._id.toString()),
+    isSaved: savedTips.includes(tip._id.toString()),
   }));
 
   return res
@@ -161,23 +175,43 @@ export const deleteTip = asyncHandler(async (req, res) => {
 
   await Tip.findByIdAndDelete(tipId);
   await Like.deleteMany({ tipId });
+  await User.updateOne({ _id: tip.userId }, { $pull: { tips: tipId } });
 
   return res.status(200).json(new ApiResponse(200, "Tip deleted successfully"));
 });
 
-export const saveTip = asyncHandler(async (req, res) => {
+export const ToggleSaveTip = asyncHandler(async (req, res) => {
   const tipId = req.params.tipId;
   if (!tipId) {
     throw new ApiError(400, "Tip Id is required");
   }
+
   const userId = req.user?._id;
+
   const user = await User.findById(userId);
   if (!user) {
     throw new ApiError(404, "User Not Found");
   }
-  const userTips = user.tips;
-  const updatedtips = [...userTips, tipId];
-  user.tips = updatedtips;
+
+  // convert all ObjectIds to string for comparison
+  const userTips = user.tips.map((id) => id.toString());
+  const isSaved = userTips.includes(tipId.toString());
+
+  if (isSaved) {
+    // UNSAVE
+    user.tips = user.tips.filter((id) => id.toString() !== tipId.toString());
+    await user.save();
+
+    return res
+      .status(200)
+      .json(new ApiResponse(200, "Tip Unsaved Successfully", { saved: false }));
+  }
+
+  // SAVE
+  user.tips.push(tipId); // no duplicates because unsaved case above
   await user.save();
-  return res.status(200).json(new ApiResponse(200, "Tip Saved Successfully"));
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, "Tip Saved Successfully", { saved: true }));
 });
