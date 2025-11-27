@@ -14,6 +14,7 @@ import { getPublicId } from "../utils/getPublicId.js";
 
 // -------------------- Add Tip --------------------
 export const AddTip = asyncHandler(async (req, res) => {
+  console.log(req.body);
   const { title, description, category, tips } = req.body; // tips array included
   const tipImagePath = req.file?.path;
   const userId = req.user?._id;
@@ -72,6 +73,7 @@ export const getTip = asyncHandler(async (req, res) => {
 
   const isLiked = await Like.exists({ userId: req.user?._id, tipId });
   tip.isLiked = Boolean(isLiked);
+  await new Promise((resolve) => setTimeout(resolve, 1200));
 
   return res
     .status(200)
