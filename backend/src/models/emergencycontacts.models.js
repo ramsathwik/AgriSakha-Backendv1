@@ -4,25 +4,27 @@ const emergencyContactsSchema = mongoose.Schema(
   {
     officerName: {
       type: String,
-      required: true,
+      required: [true, "Officer Name is required"],
     },
     phoneNumber: {
       type: String,
-      required: true,
+      required: [true, "phoneNumber is requierd"],
     },
     designation: {
       type: String,
-      required: true,
+      required: [true, "designation is required"],
     },
     department: {
       type: String,
-      required: true,
+      required: [true, "department is required"],
     },
     serviceAreaLevel: {
       type: String,
-      required: true,
+      required: [true, "Service Level is required"],
     },
-    specializations: [{ type: String, required: true }],
+    specializations: [
+      { type: String, required: [true, "Specialiazations is requied"] },
+    ],
     isActive: {
       type: Boolean,
       default: true,
@@ -30,12 +32,12 @@ const emergencyContactsSchema = mongoose.Schema(
     state: {
       type: mongoose.Types.ObjectId,
       ref: "State",
-      required: true,
+      required: [true, "State is required"],
     },
     district: {
       type: mongoose.Types.ObjectId,
       ref: "District",
-      required: true,
+      required: [true, "Mandal is required"],
     },
     mandal: {
       type: mongoose.Types.ObjectId,

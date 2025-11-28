@@ -8,6 +8,7 @@ const userSchema = new mongoose.Schema(
     imageUrl: String,
     username: { type: String, required: true },
     phoneNumber: { type: String, required: true },
+    newPhoneNumber: { type: String },
     gender: { type: String, enum: ["male", "female"] },
     password: { type: String, required: true },
     farmsize: {

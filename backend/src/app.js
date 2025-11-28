@@ -17,6 +17,8 @@ import locationRoter from "./routes/location.route.js";
 import tipCategoryRouter from "./routes/tipCategory.route.js";
 import tipRouter from "./routes/tip.route.js";
 import likeRouter from "./routes/like.route.js";
+import profileRouter from "./routes/profile.route.js";
+import emergencyContactRouter from "./routes/emergencyContact.route.js";
 
 //basic configuration
 app.use(express.json());
@@ -30,6 +32,8 @@ app.use("/api/v1/location", locationRoter);
 app.use("/api/v1/tipCategory", tipCategoryRouter);
 app.use("/api/v1/tip", tipRouter);
 app.use("/api/v1/like", likeRouter);
+app.use("/api/v1/profile", profileRouter);
+app.use("/api/v1/contact", emergencyContactRouter);
 app.use(errorHandler);
 
 export { app };
