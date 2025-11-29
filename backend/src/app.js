@@ -20,6 +20,7 @@ import likeRouter from "./routes/like.route.js";
 import profileRouter from "./routes/profile.route.js";
 import emergencyContactRouter from "./routes/emergencyContact.route.js";
 import cropCategoryRouter from "./routes/cropCategory.route.js";
+import cropRouter from "./routes/crop.route.js";
 
 //basic configuration
 app.use(express.json());
@@ -36,6 +37,7 @@ app.use("/api/v1/like", likeRouter);
 app.use("/api/v1/profile", profileRouter);
 app.use("/api/v1/contact", emergencyContactRouter);
 app.use("/api/v1/cropCategory", cropCategoryRouter);
+app.use("/api/v1/crop", cropRouter);
 app.use(errorHandler);
 
 export { app };

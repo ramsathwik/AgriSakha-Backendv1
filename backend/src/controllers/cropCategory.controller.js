@@ -1,4 +1,5 @@
 import { CropCategory } from "../models/cropcategory.models.js";
+import { Crop } from "../models/crop.models.js";
 import { ApiError } from "../utils/api-error.js";
 import { ApiResponse } from "../utils/api-response.js";
 import { asyncHandler } from "../utils/async-handler.js";
@@ -66,6 +67,7 @@ export const deleteCategory = asyncHandler(async (req, res) => {
   if (!deletedCategory) {
     throw new ApiError(400, "Category Not Found");
   }
+  await Crop.deleteMany({ category: categoryId });
 
   res.status(200).json(new ApiResponse(200, "Successfully deleted category"));
 });
