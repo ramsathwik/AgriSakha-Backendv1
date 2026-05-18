@@ -13,11 +13,12 @@ export const getEmergencyContacts = asyncHandler(async (req, res) => {
     { key: "district", value: user.district },
     { key: "state", value: user.state },
   ];
+  console.log(levels);
   for (const level of levels) {
     if (!level.value) continue;
 
     const contacts = await EmergencyContact.find({
-      [level.key]: level.value,
+      $or: [{ [level.key]: level.value }],
       isActive: true,
     });
 
@@ -81,7 +82,7 @@ export const addEmergencyContact = asyncHandler(async (req, res) => {
   return res
     .status(201)
     .json(
-      new ApiResponse(201, "Emergency contact added successfully", contact)
+      new ApiResponse(201, "Emergency contact added successfully", contact),
     );
 });
 
@@ -127,7 +128,7 @@ export const updateEmergenctContact = asyncHandler(async (req, res) => {
     {
       new: true,
       runValidators: true,
-    }
+    },
   );
 
   if (!updatedContact) {

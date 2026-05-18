@@ -76,10 +76,10 @@ export const verifyOtp = asyncHandler(async (req, res) => {
   user.isVerified = true;
   await user.save({ validateBeforeSave: false });
   const { accessToken, refreshToken } = await generateAccessAndRefreshToken(
-    user._id
+    user._id,
   );
   const newuser = await User.findById(user._id).select(
-    "-password -refreshToken -isVerified -phoneNumberVerificationToken -phoneNumberVerificationExpiry"
+    "-password -refreshToken -isVerified -phoneNumberVerificationToken -phoneNumberVerificationExpiry",
   );
   if (!newuser) {
     throw new ApiError(400, "User Not Found");
@@ -99,7 +99,7 @@ export const verifyOtp = asyncHandler(async (req, res) => {
       user: newuser,
       accessToken,
       refreshToken,
-    })
+    }),
   );
 });
 
@@ -137,7 +137,7 @@ export const refreshAccessToken = asyncHandler(async (req, res) => {
       new ApiResponse(200, "accessToken Refreshed Successfully", {
         accessToken,
         newRefreshToken,
-      })
+      }),
     );
   } catch (err) {
     console.log(err);
@@ -171,8 +171,8 @@ export const registerUser = asyncHandler(async (req, res) => {
         .json(
           new ApiResponse(
             200,
-            "User created successfully. Please verify your mobile number."
-          )
+            "User created successfully. Please verify your mobile number.",
+          ),
         );
     }
   }
@@ -215,8 +215,8 @@ export const registerUser = asyncHandler(async (req, res) => {
     .json(
       new ApiResponse(
         200,
-        "User created successfully. Please verify your mobile number."
-      )
+        "User created successfully. Please verify your mobile number.",
+      ),
     );
 });
 
@@ -238,10 +238,10 @@ export const loginUser = asyncHandler(async (req, res) => {
   }
 
   const { accessToken, refreshToken } = await generateAccessAndRefreshToken(
-    user._id
+    user._id,
   );
   const newuser = await User.findById(user._id).select(
-    "-password -refreshToken -isVerified -phoneNumberVerificationToken -phoneNumberVerificationExpiry"
+    "-password -refreshToken -isVerified -phoneNumberVerificationToken -phoneNumberVerificationExpiry",
   );
 
   if (!newuser) {
@@ -263,7 +263,7 @@ export const loginUser = asyncHandler(async (req, res) => {
       user: newuser,
       accessToken,
       refreshToken,
-    })
+    }),
   );
 });
 
@@ -283,7 +283,7 @@ export const logoutUser = asyncHandler(async (req, res) => {
     new ApiResponse(200, "LogOut Successfully", {
       accessToken: "",
       refreshToken: "",
-    })
+    }),
   );
 });
 
@@ -308,7 +308,7 @@ export const getCurrentUser = asyncHandler(async (req, res) => {
     // 3. Find user
     const user = await User.findById(decoded._id)
       .select(
-        "-password -refreshToken -phoneNumberVerificationToken -phoneNumberVerificationExpiry"
+        "-password -refreshToken -phoneNumberVerificationToken -phoneNumberVerificationExpiry",
       )
       .populate("tips");
 
@@ -320,7 +320,7 @@ export const getCurrentUser = asyncHandler(async (req, res) => {
     res.status(200).json(
       new ApiResponse(200, "User authenticated", {
         user,
-      })
+      }),
     );
   } catch (error) {
     // If access token expired, try refresh

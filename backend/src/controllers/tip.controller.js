@@ -26,18 +26,21 @@ export const AddTip = asyncHandler(async (req, res) => {
     } catch (err) {
       throw new ApiError(400, "Error while uploading tip Image to Cloudinary");
     }
+  } else {
+    throw new ApiError(400, "image is required");
   }
 
   const tipData = {
+    imageUrl: uploadedImage.url,
     title,
     description,
     category,
     tips: Array.isArray(tips) ? tips : [tips], // ensure array
     userId,
-    ...(uploadedImage && { imageUrl: uploadedImage.url }),
   };
-
+  console.log(tipData);
   const newTip = await Tip.create(tipData);
+  console.log(newTip);
   if (!newTip) throw new ApiError(400, "Failed to create tip");
 
   return res

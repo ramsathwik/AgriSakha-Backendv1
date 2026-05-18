@@ -23,7 +23,7 @@ router.post(
   upload.single("avatar"),
   registerUserValidator(),
   validate,
-  registerUser
+  registerUser,
 );
 
 router.get("/me", getCurrentUser);
@@ -32,5 +32,6 @@ router.post("/send-otp", sendOtp);
 router.post("/login-user", loginValidator(), validate, loginUser);
 router.post("/refresh", refreshAccessToken);
 router.post("/logout-user", verifyJwt, logoutUser);
+router.get("/get-user", verifyJwt, getCurrentUser);
 
 export default router;
